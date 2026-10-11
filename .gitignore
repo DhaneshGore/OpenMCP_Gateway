@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# OpenMCP Gateway
+*.db
+*.db-shm
+*.db-wal
+/openmcp.yaml
+/openmcp.yml

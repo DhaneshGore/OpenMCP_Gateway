@@ -1,0 +1,7 @@
+# A single server definition for `openmcp server add examples/servers/docs-search.yaml`.
+# Remote servers can always be registered; stdio servers require
+# admin.allow_stdio_registration: true on the gateway.
+id: docs-search
+transport: http
+url: https://docs-mcp.example.com/mcp
+description: Example remote server registered at runtime

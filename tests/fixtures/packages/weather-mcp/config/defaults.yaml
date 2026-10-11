@@ -1,0 +1,2 @@
+max_forecast_days: 7
+skies: [clear, cloudy, rain, snow]

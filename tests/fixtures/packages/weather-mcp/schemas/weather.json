@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WeatherReading",
+  "type": "object",
+  "properties": {
+    "city": {"type": "string"},
+    "temperature_c": {"type": "number"},
+    "sky": {"type": "string"}
+  },
+  "required": ["city", "temperature_c", "sky"]
+}

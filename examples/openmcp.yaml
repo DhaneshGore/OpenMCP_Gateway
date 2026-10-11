@@ -1,0 +1,13 @@
+# Minimal local-development configuration.
+# Run:  openmcp --config examples/openmcp.yaml serve
+gateway:
+  host: 127.0.0.1
+  port: 8080
+logging:
+  level: info
+  format: text
+servers:
+  - id: demo
+    description: Demo echo server bundled with the gateway
+    command: python
+    args: ["-m", "openmcp_gateway.demo.echo_server"]

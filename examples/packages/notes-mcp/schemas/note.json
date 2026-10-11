@@ -1,0 +1,6 @@
+{
+  "title": "Note",
+  "type": "object",
+  "required": ["id", "title", "body"],
+  "properties": {"id": {"type": "string"}, "title": {"type": "string", "maxLength": 120}, "body": {"type": "string"}}
+}

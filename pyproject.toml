@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openmcp-gateway"
+description = "A community-driven, provider-neutral gateway for Model Context Protocol (MCP) servers."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "OpenMCP Gateway contributors" }]
+keywords = ["mcp", "model-context-protocol", "gateway", "proxy", "llm", "agents"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: FastAPI",
+  "Intended Audience :: Developers",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+  "Typing :: Typed",
+]
+dynamic = ["version"]
+# Lower bounds are the versions the test suite was run against; upper bounds
+# guard against untested major releases. See docs/dependencies.md.
+dependencies = [
+  "mcp>=2.3,<3",
+  "fastapi>=0.120,<1",
+  "uvicorn>=0.30,<1",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "pyyaml>=6.0,<7",
+  "prometheus-client>=0.21,<1",
+  "opentelemetry-api>=1.27,<2",
+  "pip>=26.2",  # runs package dependency installs (pip --python); floor excludes known advisories
+]
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.35,<2"]
+mongodb = ["pymongo>=4.13,<5"]
+dev = [
+  "boto3>=1.35,<2",
+  "pymongo>=4.13,<5",
+  "moto[server]>=5.1",
+  "pytest>=8.3",
+  "pytest-asyncio>=1.0",
+  "httpx>=0.28",
+  "ruff>=0.15",
+  "mypy>=1.18",
+  "types-PyYAML",
+]
+
+[project.scripts]
+openmcp = "openmcp_gateway.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/DhaneshGore/mcp-bridge"
+Issues = "https://github.com/DhaneshGore/mcp-bridge/issues"
+
+[tool.hatch.version]
+path = "src/openmcp_gateway/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openmcp_gateway"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers -m 'not load'"
+markers = [
+  "e2e: starts real subprocesses and/or a real HTTP server",
+  "load: optional load tests (excluded by default; run with -m load)",
+  "services: needs external services (MongoDB); skipped unless OPENMCP_TEST_MONGODB_URI is set",
+]
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "PT"]
+ignore = [
+  "S101",   # assert is fine in tests and for internal invariants
+  "S603",   # subprocess without shell=True is exactly what we want
+  "RUF012",
+  "ASYNC109", # explicit `timeout` parameters are part of our internal API by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "ASYNC", "B011", "PT018"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["openmcp_gateway"]
+mypy_path = "src"
+warn_unused_ignores = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["yaml.*", "boto3.*", "botocore.*", "moto.*"]
+ignore_missing_imports = true

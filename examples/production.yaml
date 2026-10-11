@@ -1,0 +1,62 @@
+# Example production configuration. All values are FAKE placeholders.
+# Replace every sha256 with the output of `openmcp token generate`.
+gateway:
+  host: 0.0.0.0
+  port: 8080
+  # Host header values clients use to reach you (via your TLS reverse proxy).
+  allowed_hosts: ["mcp.example.internal", "mcp.example.internal:443"]
+  allowed_origins: ["https://mcp.example.internal"]
+  # Only this proxy may set X-Forwarded-For / X-Forwarded-Proto.
+  trusted_proxies: ["10.0.0.10"]
+  ready_requires_all_servers: false
+
+auth:
+  mode: bearer
+  tokens:
+    - name: ide-alice
+      sha256: "0000000000000000000000000000000000000000000000000000000000000001"
+      servers: ["files"]
+    - name: agent-ci
+      sha256: "0000000000000000000000000000000000000000000000000000000000000002"
+      servers: ["*"]
+    - name: ops
+      sha256: "0000000000000000000000000000000000000000000000000000000000000003"
+      servers: []
+      roles: [admin]
+    - name: prometheus
+      sha256: "0000000000000000000000000000000000000000000000000000000000000004"
+      servers: []
+      roles: [metrics]
+
+rate_limits:
+  per_principal_rps: 10
+  per_principal_burst: 40
+  global_rps: 200
+  global_burst: 400
+
+limits:
+  max_sessions: 500
+  session_idle_timeout: 900
+
+logging:
+  level: info
+  format: json
+
+storage:
+  backend: sqlite
+  path: /var/lib/openmcp/registry.db
+
+servers:
+  - id: files
+    description: Read-only shared documents
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/srv/shared"]
+    max_concurrency: 8
+    timeouts: {startup: 60, request: 30, shutdown: 5}
+
+  - id: search
+    transport: http
+    url: https://search-mcp.example.com/mcp
+    headers_from_host:
+      Authorization: SEARCH_MCP_AUTHORIZATION   # e.g. "Bearer <token>" in the gateway's environment
+    restart: {max_restarts: 10, window: 600, backoff_initial: 2, backoff_max: 120}

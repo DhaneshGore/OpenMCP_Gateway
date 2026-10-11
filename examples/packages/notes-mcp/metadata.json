@@ -1,0 +1,7 @@
+{
+  "name": "notes-mcp",
+  "version": "0.1.0",
+  "description": "Example multi-file MCP server package: a tiny note store.",
+  "entrypoint": "server.py",
+  "license": "Apache-2.0"
+}

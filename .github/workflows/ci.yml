@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"   # weekly, catches new dependency releases/advisories
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff format --check src tests scripts
+      - run: ruff check src tests scripts
+      - run: mypy
+      - run: python scripts/gen_config_reference.py --check
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.12"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest -rs --durations=10
+        timeout-minutes: 15
+        env:
+          # On Linux the sandbox tests must run: a kernel without Landlock fails the job.
+          OPENMCP_REQUIRE_LANDLOCK: ${{ runner.os == 'Linux' && '1' || '0' }}
+
+  services:
+    # Tests that need real external services (MongoDB package catalog).
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping: 1})'"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      OPENMCP_TEST_MONGODB_URI: mongodb://127.0.0.1:27017
+      OPENMCP_REQUIRE_LANDLOCK: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: MongoDB catalog and S3 + MongoDB end-to-end tests
+        run: pytest -rs -m "services or e2e" tests/integration/test_package_service.py tests/e2e/test_packages_e2e.py
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -t openmcp-gateway:ci .
+      - name: Smoke test the image
+        run: |
+          docker run -d --name gw -p 127.0.0.1:8080:8080 \
+            -v "$PWD/examples/docker:/etc/openmcp:ro" --read-only --tmpfs /tmp \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            openmcp-gateway:ci
+          for i in $(seq 1 30); do
+            if curl -fsS 127.0.0.1:8080/ready; then exit 0; fi
+            sleep 1
+          done
+          docker logs gw
+          exit 1
+      - name: Landlock is usable inside the container
+        run: |
+          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            --entrypoint python openmcp-gateway:ci -c \
+            "from openmcp_gateway.packages.bootstrap import landlock_abi as a; v = a(); print('landlock ABI', v); assert v >= 1"
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit .
+      - name: Audit runtime dependencies for known vulnerabilities
+        run: pip-audit --skip-editable

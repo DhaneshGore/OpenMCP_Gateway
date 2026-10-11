@@ -1,0 +1,21 @@
+# Local demo: docker compose up --build
+# The gateway is reachable only from this machine at http://127.0.0.1:8080/mcp
+services:
+  gateway:
+    build: .
+    image: openmcp-gateway:dev
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./examples/docker:/etc/openmcp:ro
+      - openmcp-data:/var/lib/openmcp
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  openmcp-data:

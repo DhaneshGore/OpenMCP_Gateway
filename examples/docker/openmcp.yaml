@@ -1,0 +1,25 @@
+# Container demo configuration.
+#
+# Inside a container the gateway must bind 0.0.0.0, which is not loopback, so
+# unauthenticated mode has to be acknowledged explicitly. This is acceptable
+# ONLY because docker-compose.yml publishes the port on the host's loopback
+# interface (127.0.0.1:8080). For anything else, switch to auth.mode: bearer
+# (see examples/production.yaml).
+gateway:
+  host: 0.0.0.0
+  port: 8080
+  allowed_hosts: ["localhost:8080", "127.0.0.1:8080"]
+  allowed_origins: ["http://localhost:8080", "http://127.0.0.1:8080"]
+auth:
+  mode: none
+  allow_unauthenticated_non_loopback: true
+logging:
+  format: json
+storage:
+  backend: sqlite
+  path: /var/lib/openmcp/registry.db
+servers:
+  - id: demo
+    description: Demo echo server bundled with the gateway
+    command: python
+    args: ["-m", "openmcp_gateway.demo.echo_server"]
