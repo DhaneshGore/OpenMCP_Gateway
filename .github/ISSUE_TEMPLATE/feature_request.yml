@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an improvement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the use case. Who needs this, and why?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Does this affect any of the following? (needs an ADR)
+      options:
+        - label: MCP protocol behaviour
+        - label: Security defaults
+        - label: Configuration or admin API compatibility
+        - label: Storage schema
+        - label: A new major dependency

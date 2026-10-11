@@ -1,0 +1,2 @@
+# Runtime dependency: the MCP Python SDK, provided by the gateway runtime
+# (packages.dependencies.inherit_gateway_packages). Nothing to install.

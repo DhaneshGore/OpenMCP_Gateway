@@ -1,0 +1,8 @@
+{
+  "name": "weather-mcp",
+  "version": "1.0.0",
+  "description": "Multi-file demo MCP server used by the gateway's end-to-end tests.",
+  "entrypoint": "server.py",
+  "license": "Apache-2.0",
+  "authors": ["OpenMCP Gateway contributors"]
+}

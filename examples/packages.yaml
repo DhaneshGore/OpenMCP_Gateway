@@ -1,0 +1,49 @@
+# Gateway configuration with multi-file packages enabled.
+# Local backends by default; see the commented S3/MongoDB settings below.
+gateway:
+  host: 127.0.0.1
+  port: 8080
+auth:
+  # Replace with the output of: openmcp token generate --name ops --admin
+  tokens:
+    - name: ops
+      sha256: "0000000000000000000000000000000000000000000000000000000000000005"
+      servers: []
+      roles: [admin]
+storage:
+  backend: sqlite
+  path: openmcp-data/registry.db
+packages:
+  enabled: true
+  artifacts:
+    backend: local
+    path: openmcp-data/artifacts
+    # backend: s3
+    # bucket: my-mcp-packages
+    # endpoint_url: https://s3.example.internal    # omit for AWS
+    # region: eu-west-1
+    # access_key_id_env: PACKAGES_S3_KEY            # names of env vars, never values
+    # secret_access_key_env: PACKAGES_S3_SECRET
+  catalog:
+    backend: sqlite
+    path: openmcp-data/packages.db
+    # backend: mongodb
+    # mongodb_uri_env: OPENMCP_MONGODB_URI
+    # database: openmcp
+  cache_dir: openmcp-data/cache
+  runtime_dir: openmcp-data/runtime
+  dependencies:
+    policy: locked          # hash-pinned lock files, wheels only
+    # index_url: https://pypi.example.internal/simple
+  sandbox:
+    isolation: landlock     # Linux; set to none only on a trusted dev machine
+  retention:
+    allow_delete: true
+    keep_latest: 1
+# Package servers reference an exact, registered version:
+servers: []
+  # - id: notes
+  #   transport: package
+  #   package: notes-mcp
+  #   version: 0.1.0
+  #   network: deny
