@@ -8,6 +8,7 @@ import logging
 import sqlite3
 from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 from mcp.server.streamable_http_manager import StreamableHTTPASGIApp, StreamableHTTPSessionManager
@@ -130,9 +131,7 @@ def create_app(
                 if config_path is not None:
                     from openmcp_gateway.reload import ConfigReloader
 
-                    reloader = ConfigReloader(
-                        config_path, app, manager, (mcp_authn, admin_authn), metrics
-                    )
+                    reloader = ConfigReloader(config_path, app, manager, (mcp_authn, admin_authn), metrics)
                     _reload_task = asyncio.create_task(reloader.watch(), name="config-hot-reload")
                 yield
                 app.state.started = False
@@ -158,10 +157,11 @@ def create_app(
         openapi_tags=[],
     )
 
-    def custom_openapi() -> dict:
+    def custom_openapi() -> dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
         from fastapi.openapi.utils import get_openapi
+
         schema = get_openapi(
             title=app.title,
             version=app.version,

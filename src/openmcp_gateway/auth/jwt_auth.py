@@ -36,9 +36,7 @@ def _import_jwt() -> Any:
     except ImportError as exc:  # pragma: no cover
         from openmcp_gateway.config import ConfigError
 
-        raise ConfigError(
-            "auth.mode=jwt requires PyJWT: install openmcp-gateway[jwt]"
-        ) from exc
+        raise ConfigError("auth.mode=jwt requires PyJWT: install openmcp-gateway[jwt]") from exc
 
 
 class _JwksCache:
@@ -60,10 +58,9 @@ class _JwksCache:
             await self._refresh()
 
         # kid-miss recovery (at most once per cooldown)
-        if kid and kid not in self._keys:
-            if now - self._last_kid_miss >= _KID_MISS_COOLDOWN:
-                self._last_kid_miss = now
-                await self._refresh()
+        if kid and kid not in self._keys and now - self._last_kid_miss >= _KID_MISS_COOLDOWN:
+            self._last_kid_miss = now
+            await self._refresh()
 
         if kid:
             return self._keys.get(kid)
@@ -165,7 +162,10 @@ class JWTAuthenticator:
 
         name = str(claims.get(self._config.principal_claim, ""))
         if not name:
-            logger.debug("jwt: principal claim missing or empty", extra={"claim": self._config.principal_claim})
+            logger.debug(
+                "jwt: principal claim missing or empty",
+                extra={"claim": self._config.principal_claim},
+            )
             return None
 
         roles: frozenset[str] = frozenset()

@@ -54,6 +54,7 @@ class ConfigReloader:
         self._manager = manager
         self._authenticators = authenticators
         self._metrics = metrics
+        self._background_tasks: set[asyncio.Task[Any]] = set()
 
     async def watch(self) -> None:
         try:
@@ -70,7 +71,10 @@ class ConfigReloader:
         try:
             new_config: GatewayConfig = load_config(self._path)
         except Exception:
-            logger.warning("config hot-reload: failed to parse new config; keeping current", exc_info=True)
+            logger.warning(
+                "config hot-reload: failed to parse new config; keeping current",
+                exc_info=True,
+            )
             return
 
         old_config: GatewayConfig = self._app.state.config
@@ -96,22 +100,30 @@ class ConfigReloader:
 
         for sid in added:
             cfg = new_servers[sid]
-            server = self._manager.add_server(cfg, source="config")
+            self._manager.add_server(cfg, source="config")
             if cfg.enabled and cfg.autostart:
-                asyncio.create_task(self._manager.start(sid), name=f"reload-start-{sid}")
+                task: asyncio.Task[Any] = asyncio.create_task(
+                    self._manager.start(sid), name=f"reload-start-{sid}"
+                )
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
             logger.info("config hot-reload: server added", extra={"server": sid})
             changes += 1
 
         for sid in removed:
             existing = self._manager.get(sid)
             if existing is not None and existing.source == "config":
-                asyncio.create_task(self._manager.remove_server(sid), name=f"reload-remove-{sid}")
+                task = asyncio.create_task(self._manager.remove_server(sid), name=f"reload-remove-{sid}")
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
                 logger.info("config hot-reload: server removed", extra={"server": sid})
                 changes += 1
 
         for sid in changed:
             cfg = new_servers[sid]
-            asyncio.create_task(self._replace(sid, cfg), name=f"reload-replace-{sid}")
+            task = asyncio.create_task(self._replace(sid, cfg), name=f"reload-replace-{sid}")
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
             logger.info("config hot-reload: server changed, restarting", extra={"server": sid})
             changes += 1
 
@@ -125,4 +137,6 @@ class ConfigReloader:
             if cfg.enabled and cfg.autostart:
                 await self._manager.start(sid)
         except Exception:
-            logger.warning("config hot-reload: failed to replace server", extra={"server": sid}, exc_info=True)
+            logger.warning(
+                "config hot-reload: failed to replace server", extra={"server": sid}, exc_info=True
+            )

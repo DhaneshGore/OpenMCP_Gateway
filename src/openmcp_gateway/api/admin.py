@@ -16,6 +16,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ValidationError
 
+from openmcp_gateway.audit import get_audit_logger
 from openmcp_gateway.auth.backends import GatewayUser
 from openmcp_gateway.auth.principal import Principal
 from openmcp_gateway.config import (
@@ -33,11 +34,13 @@ from openmcp_gateway.routing.namespace import qualify
 from openmcp_gateway.runtime.manager import ManagedServer, ServerManager
 from openmcp_gateway.storage.base import SERVER_ADAPTER, ServerRepository
 
-from openmcp_gateway.audit import get_audit_logger
-
 logger = logging.getLogger("openmcp_gateway.admin")
 
 _UNAUTHORIZED = {"WWW-Authenticate": "Bearer"}
+
+
+class _LogLevelRequest(BaseModel):
+    level: Literal["debug", "info", "warning", "error"]
 
 
 def _principal(request: Request) -> Principal:
@@ -213,7 +216,9 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
 
     async def _lifecycle(server_id: str, principal: Principal, action: str) -> dict[str, Any]:
         server = get_server(server_id)
-        get_audit_logger().log(event="admin_action", principal=principal.name, action=action, server=server_id)
+        get_audit_logger().log(
+            event="admin_action", principal=principal.name, action=action, server=server_id
+        )
         try:
             if action in ("stop", "restart"):
                 await manager.stop(server_id)
@@ -243,7 +248,9 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
         await check_package_exists(definition)
         await repository.put(definition)
         server = manager.add_server(definition, source="registry")
-        get_audit_logger().log(event="admin_action", principal=principal.name, action="register", server=server.id)
+        get_audit_logger().log(
+            event="admin_action", principal=principal.name, action="register", server=server.id
+        )
         await maybe_start(server)
         return _summary(server)
 
@@ -258,7 +265,9 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
         await check_package_exists(definition)
         await repository.put(definition)
         server = await manager.replace_server(definition)
-        get_audit_logger().log(event="admin_action", principal=principal.name, action="replace", server=server_id)
+        get_audit_logger().log(
+            event="admin_action", principal=principal.name, action="replace", server=server_id
+        )
         await maybe_start(server)
         return _summary(server)
 
@@ -269,7 +278,9 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
             raise HTTPException(409, "servers defined in the configuration file are read-only")
         await manager.remove_server(server_id)
         await repository.delete(server_id)
-        get_audit_logger().log(event="admin_action", principal=principal.name, action="remove", server=server_id)
+        get_audit_logger().log(
+            event="admin_action", principal=principal.name, action="remove", server=server_id
+        )
         return Response(status_code=204)
 
     @router.get("/servers/{server_id}/tools", response_model=list[ToolInfo], summary="Discovered tools")
@@ -315,15 +326,10 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
                 tok["sha256"] = h[:8] + "…[redacted]"
         return data
 
-    class _LogLevelRequest(BaseModel):
-        level: Literal["debug", "info", "warning", "error"]
-
     @router.post("/log-level", summary="Change root log level at runtime")
     async def set_log_level(body: _LogLevelRequest, principal: Admin) -> dict[str, str]:
         logging.getLogger().setLevel(body.level.upper())
-        get_audit_logger().log(
-            event="log_level_changed", principal=principal.name, detail=body.level
-        )
+        get_audit_logger().log(event="log_level_changed", principal=principal.name, detail=body.level)
         return {"level": body.level}
 
     return router

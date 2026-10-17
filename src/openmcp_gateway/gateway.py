@@ -16,10 +16,9 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
+import mcp_types as types
 from opentelemetry import trace
 from opentelemetry.trace import StatusCode
-
-import mcp_types as types
 from pydantic import ValidationError
 
 from openmcp_gateway.auth.principal import Principal

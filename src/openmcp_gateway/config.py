@@ -429,9 +429,7 @@ class OAuthConfig(_Strict):
     )
     resource: str | None = Field(
         None,
-        description=(
-            "Resource identifier URI. Defaults to the gateway's own base URL when None."
-        ),
+        description=("Resource identifier URI. Defaults to the gateway's own base URL when None."),
     )
     scopes_supported: list[str] = Field(
         default_factory=list,
@@ -449,7 +447,8 @@ class AuthConfig(_Strict):
         ),
     )
     allow_unauthenticated_non_loopback: bool = Field(
-        False, description="Permit mode=none/optional on a non-loopback bind. Dangerous; for trusted networks only."
+        False,
+        description="Permit mode=none/optional on a non-loopback bind. Dangerous; for trusted networks only.",
     )
     tokens: list[TokenConfig] = Field(
         default_factory=list, description="Client and admin tokens (see auth.tokens[])."

@@ -17,7 +17,7 @@ FROM python:${PYTHON_VERSION}-slim
 LABEL org.opencontainers.image.title="OpenMCP Gateway" \
       org.opencontainers.image.description="Provider-neutral gateway for Model Context Protocol servers" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com/DhaneshGore/mcp-bridge"
+      org.opencontainers.image.source="https://github.com/DhaneshGore/OpenMCP_Gateway.git"
 RUN groupadd --system --gid 10001 openmcp \
  && useradd --system --uid 10001 --gid openmcp --home-dir /var/lib/openmcp --create-home openmcp
 COPY --from=build /opt/venv /opt/venv

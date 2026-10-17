@@ -20,10 +20,11 @@ Usage::
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any
@@ -44,27 +45,26 @@ class AuditLogger:
         self._file: io.TextIOWrapper | None = None
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
-            self._file = path.open("a", encoding="utf-8", buffering=1)  # line-buffered
+            self._file = path.open("a", encoding="utf-8", buffering=1)  # line-buffered (1=line)
 
     def log(self, **fields: Any) -> None:
         record: dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "request_id": request_id_var.get(),
             **fields,
         }
         logger.info("audit", extra=record)
         if self._file is not None:
             try:
-                self._file.write(json.dumps(record, default=str) + "\n")
+                json_line = json.dumps(record, default=str) + "\n"
+                self._file.write(json_line)
             except OSError:
                 logger.warning("audit log write failed", exc_info=True)
 
     def close(self) -> None:
         if self._file is not None:
-            try:
+            with contextlib.suppress(OSError):
                 self._file.close()
-            except OSError:
-                pass
             self._file = None
 
     def __enter__(self) -> AuditLogger:
