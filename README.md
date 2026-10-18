@@ -2,9 +2,9 @@
 
 **One access-controlled, observable front door for all your MCP servers.**
 
-> OpenMCP Gateway is a working name and may change before the first release.
-> The project is **alpha**: interfaces and configuration may change between
-> 0.x versions.
+> **Alpha:** The project is under active development. Interfaces and
+> configuration may change between 0.x releases. Breaking changes are
+> documented in [CHANGELOG.md](CHANGELOG.md).
 
 OpenMCP Gateway is an independent, community-driven gateway for the
 [Model Context Protocol](https://modelcontextprotocol.io). It runs your local

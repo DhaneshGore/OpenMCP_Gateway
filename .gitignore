@@ -225,3 +225,6 @@ __marimo__/
 *.db-wal
 /openmcp.yaml
 /openmcp.yml
+
+# Claude Code local settings (tool allowlists, session state — not project config)
+.claude/
