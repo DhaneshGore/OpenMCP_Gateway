@@ -122,6 +122,47 @@ async def test_admin_api_can_be_disabled() -> None:
         assert (await http.get("/admin/servers", headers=auth(tokens["admin"]))).status_code == 404
 
 
+async def test_admin_config_redacts_env_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    """H1: /admin/config must never expose literal env values."""
+    monkeypatch.setenv("OMG_TEST_SECRET", "child-secret-value-123")
+    cfg, tokens = config_with_tokens()
+    # Give the server a literal env value that should be redacted.
+    cfg.servers[0].env = {"MY_API_KEY": "super-secret-key-123"}
+    async with run_gateway(cfg) as gw, httpx.AsyncClient(base_url=gw.base_url) as http:
+        resp = await http.get("/admin/config", headers=auth(tokens["admin"]))
+        assert resp.status_code == 200
+        body = resp.json()
+        # Key names must be preserved for debuggability.
+        env_block = body["servers"][0]["env"]
+        assert "MY_API_KEY" in env_block
+        # Literal value must be replaced.
+        assert env_block["MY_API_KEY"] == "[redacted]"
+        assert "super-secret-key-123" not in resp.text
+
+
+async def test_admin_config_redacts_token_hashes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """H1 (existing): token SHA-256 hashes are truncated to 8 chars + ellipsis."""
+    monkeypatch.setenv("OMG_TEST_SECRET", "x")
+    cfg, tokens = config_with_tokens()
+    async with run_gateway(cfg) as gw, httpx.AsyncClient(base_url=gw.base_url) as http:
+        resp = await http.get("/admin/config", headers=auth(tokens["admin"]))
+        assert resp.status_code == 200
+        for tok in resp.json()["auth"]["tokens"]:
+            h = tok["sha256"]
+            # Must be truncated — full 64-char hex must not appear.
+            assert len(h) < 64
+            assert "[redacted]" in h
+
+
+async def test_admin_config_requires_admin_role(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OMG_TEST_SECRET", "x")
+    cfg, tokens = config_with_tokens()
+    async with run_gateway(cfg) as gw, httpx.AsyncClient(base_url=gw.base_url) as http:
+        assert (await http.get("/admin/config")).status_code == 401
+        assert (await http.get("/admin/config", headers=auth(tokens["user"]))).status_code == 403
+        assert (await http.get("/admin/config", headers=auth(tokens["admin"]))).status_code == 200
+
+
 async def test_rate_limit_is_enforced_per_principal(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OMG_TEST_SECRET", "child-secret-value-123")
     cfg, tokens = config_with_tokens(

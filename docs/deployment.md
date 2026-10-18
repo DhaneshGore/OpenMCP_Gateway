@@ -24,7 +24,13 @@ The image:
 * reads its config from `/etc/openmcp/openmcp.yaml` (`OPENMCP_CONFIG`);
 * writes only to `/var/lib/openmcp` (SQLite registry) and `/tmp`, so it
   works with `read_only: true`;
-* has a `HEALTHCHECK` against `/health`.
+* has a `HEALTHCHECK` against `/health`;
+* includes the `s3`, `mongodb`, `jwt`, and `otel` optional extras — S3 and
+  MongoDB storage backends, JWT/OIDC authentication, and OpenTelemetry export
+  are available without a custom build;
+* does **not** include `hot-reload` (`watchfiles` requires a Rust toolchain
+  at build time); add `pip install "openmcp-gateway[hot-reload]"` to a derived
+  image if needed.
 
 The compose file publishes the port on `127.0.0.1` only and uses
 [`examples/docker/openmcp.yaml`](../examples/docker/openmcp.yaml), which
