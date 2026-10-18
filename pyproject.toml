@@ -59,7 +59,9 @@ dev = [
   "PyJWT[crypto]>=2.8,<3",
   "opentelemetry-sdk>=1.27,<2",
   "opentelemetry-exporter-otlp-proto-http>=1.27,<2",
-  "watchfiles>=0.21,<1",
+  # watchfiles is intentionally not included here: it requires Rust at build
+  # time and is only needed for the hot-reload optional feature.
+  # Install it separately: pip install "openmcp-gateway[hot-reload]"
 ]
 
 [project.scripts]

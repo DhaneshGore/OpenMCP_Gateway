@@ -10,6 +10,18 @@ called out under **Changed** or **Removed**.
 
 Initial development. Nothing has been released yet.
 
+### Fixed
+
+- Package servers that depended on Python packages installed with
+  `pip install --user` failed to start because `gateway_site_paths()` did not
+  include the user site-packages directory in the sandboxed venv's `.pth`
+  file. The function now includes the user site-packages directory when it is
+  present on `sys.path`.
+- Removed `watchfiles` from the `dev` optional dependencies; it requires a
+  Rust toolchain at install time and is only needed for the `hot-reload`
+  optional feature. `pip install -e ".[dev]"` now succeeds on any Python
+  version without a Rust compiler.
+
 ### Added
 
 - Streamable HTTP MCP endpoint built on the official MCP Python SDK

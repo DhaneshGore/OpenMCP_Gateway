@@ -317,13 +317,21 @@ def build_router(manager: ServerManager, repository: ServerRepository, config: G
         return Response(body, media_type=content_type)
 
     @router.get("/config", summary="Effective configuration (secrets redacted)")
-    async def get_config(_: Admin) -> dict[str, Any]:
-        data: dict[str, Any] = config.model_dump(mode="json")
+    async def get_config(request: Request, _: Admin) -> dict[str, Any]:
+        live_config = getattr(request.app.state, "config", config)
+        data: dict[str, Any] = live_config.model_dump(mode="json")
         # Truncate SHA-256 hashes so the response is safe to log/share.
         for tok in data.get("auth", {}).get("tokens", []):
             h = str(tok.get("sha256", ""))
             if len(h) == 64:
                 tok["sha256"] = h[:8] + "…[redacted]"
+        # Redact literal env and header values that may carry secrets.
+        # Keys are preserved so the structure is still useful for debugging.
+        for srv in data.get("servers", []):
+            if srv.get("env"):
+                srv["env"] = {k: "[redacted]" for k in srv["env"]}
+            if srv.get("headers"):
+                srv["headers"] = {k: "[redacted]" for k in srv["headers"]}
         return data
 
     @router.post("/log-level", summary="Change root log level at runtime")

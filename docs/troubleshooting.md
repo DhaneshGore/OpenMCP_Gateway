@@ -79,3 +79,16 @@ the cause, then `openmcp server start <id>`.
 
 **Rate limited right after connecting.** SDK clients often call `tools/list`
 before `tools/call`, and both count against `rate_limits`.
+
+**A package server fails with `ModuleNotFoundError` for a package that is installed
+on the gateway host.** The package was installed with `pip install --user`, which
+places it in the user site-packages directory (e.g. `~/.local/lib/python3.x/site-packages`).
+When Python runs in isolated mode (`-I`), user site-packages are excluded by default.
+The gateway normally handles this automatically by adding the user site-packages
+directory to the sandboxed environment's `.pth` file, but only when that directory
+is present on `sys.path` at gateway startup. To resolve this, either:
+
+1. Ensure the gateway itself is started in an environment where the dependency
+   appears on `sys.path` (e.g. activate the same venv or install system-wide), or
+2. Add the package to the server's `requirements.lock` so the package system
+   installs it into the dedicated per-server environment.

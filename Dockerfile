@@ -11,13 +11,13 @@ RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir ".[s3,mongodb]"
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir ".[s3,mongodb,jwt,otel]"
 
 FROM python:${PYTHON_VERSION}-slim
 LABEL org.opencontainers.image.title="OpenMCP Gateway" \
       org.opencontainers.image.description="Provider-neutral gateway for Model Context Protocol servers" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com/DhaneshGore/OpenMCP_Gateway.git"
+      org.opencontainers.image.source="https://github.com/DhaneshGore/mcp-bridge"
 RUN groupadd --system --gid 10001 openmcp \
  && useradd --system --uid 10001 --gid openmcp --home-dir /var/lib/openmcp --create-home openmcp
 COPY --from=build /opt/venv /opt/venv

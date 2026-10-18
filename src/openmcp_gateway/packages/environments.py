@@ -81,8 +81,16 @@ def system_read_paths() -> list[str]:
 
 
 def gateway_site_paths() -> list[str]:
+    import site
+
     paths = sysconfig.get_paths()
-    return sorted({paths["purelib"], paths["platlib"]})
+    candidates = {paths["purelib"], paths["platlib"]}
+    # Include user site-packages when present on sys.path (e.g. packages
+    # installed with `pip install --user` in a non-venv environment).
+    user_site = site.getusersitepackages() if hasattr(site, "getusersitepackages") else None
+    if user_site and os.path.isdir(user_site) and user_site in sys.path:
+        candidates.add(user_site)
+    return sorted(candidates)
 
 
 def env_site_packages(env: Path) -> Path:

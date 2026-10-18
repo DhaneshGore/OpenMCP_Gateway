@@ -107,6 +107,7 @@ class ConfigReloader:
                 )
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
+                task.add_done_callback(self._log_task_exception)
             logger.info("config hot-reload: server added", extra={"server": sid})
             changes += 1
 
@@ -116,6 +117,7 @@ class ConfigReloader:
                 task = asyncio.create_task(self._manager.remove_server(sid), name=f"reload-remove-{sid}")
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
+                task.add_done_callback(self._log_task_exception)
                 logger.info("config hot-reload: server removed", extra={"server": sid})
                 changes += 1
 
@@ -130,6 +132,18 @@ class ConfigReloader:
         self._app.state.config = new_config
         self._metrics.config_reloads.inc()
         logger.info("config hot-reload applied", extra={"changes": changes})
+
+    @staticmethod
+    def _log_task_exception(task: asyncio.Task[Any]) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.warning(
+                "config hot-reload: background task failed",
+                extra={"task": task.get_name()},
+                exc_info=exc,
+            )
 
     async def _replace(self, sid: str, cfg: AnyServerConfig) -> None:
         try:

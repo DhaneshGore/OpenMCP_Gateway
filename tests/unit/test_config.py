@@ -131,3 +131,55 @@ def test_warning_when_packages_run_without_mcp_auth() -> None:
 
     cfg = GatewayConfig(packages={"enabled": True})
     assert any("loopback endpoint" in w for w in cfg.warnings())
+
+
+# ---------------------------------------------------------------------------
+# JWTConfig.algorithms security validator (M3)
+# ---------------------------------------------------------------------------
+
+
+def _jwt_base() -> dict[str, object]:
+    """Minimal valid JWTConfig kwargs (inline JWKS so no network call)."""
+    return {"inline_jwks": {"keys": []}, "issuer": "https://example.com"}
+
+
+def test_jwt_algorithms_default_is_asymmetric() -> None:
+    from openmcp_gateway.config import JWTConfig
+
+    cfg = JWTConfig(**_jwt_base())
+    assert set(cfg.algorithms) == {"RS256", "ES256"}
+
+
+def test_jwt_algorithms_rejects_none_algorithm() -> None:
+    from pydantic import ValidationError
+
+    from openmcp_gateway.config import JWTConfig
+
+    with pytest.raises(ValidationError, match="insecure JWT algorithm"):
+        JWTConfig(**_jwt_base(), algorithms=["none"])
+
+
+@pytest.mark.parametrize("alg", ["HS256", "HS384", "HS512"])
+def test_jwt_algorithms_rejects_hmac(alg: str) -> None:
+    from pydantic import ValidationError
+
+    from openmcp_gateway.config import JWTConfig
+
+    with pytest.raises(ValidationError, match="insecure JWT algorithm"):
+        JWTConfig(**_jwt_base(), algorithms=[alg])
+
+
+def test_jwt_algorithms_rejects_empty_list() -> None:
+    from pydantic import ValidationError
+
+    from openmcp_gateway.config import JWTConfig
+
+    with pytest.raises(ValidationError, match="must not be empty"):
+        JWTConfig(**_jwt_base(), algorithms=[])
+
+
+def test_jwt_algorithms_accepts_asymmetric() -> None:
+    from openmcp_gateway.config import JWTConfig
+
+    cfg = JWTConfig(**_jwt_base(), algorithms=["RS256", "RS384", "ES256", "ES384", "ES512"])
+    assert "RS256" in cfg.algorithms

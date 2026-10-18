@@ -401,6 +401,21 @@ class JWTConfig(_Strict):
         description="Allowed signing algorithms.",
     )
     principal_claim: str = Field("sub", description="JWT claim used as the Principal name.")
+
+    @field_validator("algorithms")
+    @classmethod
+    def _check_algorithms(cls, v: list[str]) -> list[str]:
+        insecure = {"none", "hs256", "hs384", "hs512"}
+        bad = [a for a in v if a.lower() in insecure]
+        if bad:
+            raise ValueError(
+                f"insecure JWT algorithm(s) not allowed: {bad!r}. "
+                "Use RS256, RS384, RS512, ES256, ES384, or ES512."
+            )
+        if not v:
+            raise ValueError("algorithms must not be empty")
+        return v
+
     roles_claim: str | None = Field(
         None,
         description="JWT claim containing a list of role strings (mapped to Principal.roles).",
